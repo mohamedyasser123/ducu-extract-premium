@@ -4,6 +4,7 @@ import Upload from './pages/Upload'
 import SplitReview from './pages/SplitReview'
 import OCRProcessing from './pages/OCRProcessing'
 import Download from './pages/Download'
+import './App.css'
 
 function App() {
   return (
