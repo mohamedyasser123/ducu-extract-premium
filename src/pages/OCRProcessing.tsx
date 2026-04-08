@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { FileText, Eye, Pause, Settings, X, Plus, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { FileText, Eye, Pause, Settings, X, Plus, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { pdfService, type SplitResponse } from '../services/api';
 
-const initialMockFiles = [
-  { id: 1, name: 'Invoices_Q3_Final.pdf', size: '1.2 MB', pages: 4, status: 'DONE', exported: true },
-  { id: 2, name: 'Contract_Alpha_v2.pdf', size: '840 KB', pages: 12, status: 'DONE', exported: true },
-  { id: 3, name: 'Annual_Report_2023...', size: '4.5 MB', pages: 48, status: 'OCR ACTIVE', exported: false },
-  { id: 4, name: 'Legal_Notice_DE.pdf', size: '215 KB', pages: 1, status: 'QUEUED', exported: false },
-  { id: 5, name: 'Tax_Returns_John.pdf', size: '720 KB', pages: 3, status: 'PENDING', exported: false },
-  { id: 6, name: 'Lease_Agreement.pdf', size: '1.1 MB', pages: 6, status: 'PENDING', exported: false },
-  { id: 7, name: 'ID_Front_Scan.pdf', size: '140 KB', pages: 1, status: 'PENDING', exported: false },
-];
+interface OCRFile {
+  id: number;
+  name: string;
+  size: string;
+  pages: number;
+  status: 'DONE' | 'OCR ACTIVE' | 'QUEUED' | 'WAITING' | 'PENDING';
+  exported: boolean;
+  rawText?: string;
+}
+
+// initialMockFiles removed in favor of dynamic data from navigation state
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -43,10 +47,63 @@ const getStatusIcon = (status: string) => {
 };
 
 export default function OCRProcessing() {
-  const [files, setFiles] = useState(initialMockFiles);
+  const location = useLocation();
+  const pdfData = location.state?.pdfData as SplitResponse | undefined;
+  const originalFile = location.state?.originalFile as File | undefined;
+
+  const initialFiles: OCRFile[] = pdfData?.files?.map((file, index) => ({
+    id: index + 1,
+    name: file.file_name,
+    size: '--- KB',
+    pages: 1,
+    status: 'PENDING' as const,
+    exported: false
+  })) || [];
+
+  const [files, setFiles] = useState<OCRFile[]>(initialFiles);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (originalFile && files.length > 0 && !isProcessing) {
+      handleStartOCR();
+    }
+  }, [originalFile]);
+
+  const handleStartOCR = async () => {
+    if (!originalFile) return;
+    
+    setIsProcessing(true);
+    // Set all files to ACTIVE status
+    setFiles(prev => prev.map(f => ({ ...f, status: 'OCR ACTIVE' })));
+
+    try {
+      const result = await pdfService.extractText(originalFile);
+      
+      setFiles(prev => prev.map((file, index) => {
+        const ocrData = result.pages.find(p => p.page_number === index);
+        return {
+          ...file,
+          status: 'DONE',
+          exported: true,
+          rawText: ocrData?.raw_text || 'No text extracted for this page.'
+        };
+      }));
+    } catch (err) {
+      console.error("OCR Extraction failed:", err);
+      setFiles(prev => prev.map(f => ({ ...f, status: 'PENDING' })));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const doneCount = files.filter(f => f.status === 'DONE').length;
+  const activeCount = files.filter(f => f.status === 'OCR ACTIVE').length;
+  const progress = files.length > 0 ? (doneCount / files.length) * 100 : 0;
 
   const handleAddCard = () => {
-    const newFile = {
+    // This could trigger a new upload in a real scenario
+    const newFile: OCRFile = {
       id: Math.max(...files.map(f => f.id), 0) + 1,
       name: `New_Document_${files.length + 1}.pdf`,
       size: '0 KB',
@@ -75,16 +132,24 @@ export default function OCRProcessing() {
                 <FileText size={20} className="text-[#4f46e5]" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-[15px]">Extracting 3 of 12 files...</h3>
-                <p className="text-gray-500 text-[12px]">Estimated time remaining: 45 seconds</p>
+                <h3 className="font-bold text-gray-900 text-[15px]">
+                  {activeCount > 0 
+                    ? `Extracting ${doneCount + 1} of ${files.length} files...` 
+                    : doneCount === files.length && files.length > 0
+                    ? "All files processed!"
+                    : `Ready to process ${files.length} files`}
+                </h3>
+                <p className="text-gray-500 text-[12px]">
+                  {activeCount > 0 ? "Estimated time remaining: Calculating..." : "Waiting to start..."}
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[36px] font-black text-[#4f46e5]">25%</span>
+              <span className="text-[36px] font-black text-[#4f46e5]">{Math.round(progress)}%</span>
             </div>
           </div>
           <div className="w-full bg-[#e5e7eb] rounded-full h-2 overflow-hidden">
-            <div className="bg-[#4f46e5] h-full rounded-full" style={{ width: '25%' }}></div>
+            <div className="bg-[#4f46e5] h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
           </div>
         </div>
 
@@ -120,8 +185,11 @@ export default function OCRProcessing() {
                 <>
                   <div className="mt-auto">
                     <p className="text-[#047857] text-[11px] font-bold uppercase tracking-widest mb-3">READY FOR EXPORT</p>
-                    <button className="text-[#4f46e5] text-[13px] font-bold flex items-center gap-2 hover:underline">
-                      <Eye size={16} /> View
+                    <button 
+                      onClick={() => setSelectedText(file.rawText || null)}
+                      className="text-[#4f46e5] text-[13px] font-bold flex items-center gap-2 hover:underline"
+                    >
+                      <Eye size={16} /> View Text
                     </button>
                   </div>
                 </>
@@ -166,6 +234,45 @@ export default function OCRProcessing() {
             <X size={18} /> ABORT
           </button>
         </div>
+
+        {/* Text Preview Modal */}
+        {selectedText !== null && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="text-xl font-black text-gray-900">Extracted Text Content</h3>
+                <button 
+                  onClick={() => setSelectedText(null)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-8 overflow-y-auto flex-1 bg-white">
+                <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                  {selectedText || "No text available for this selection."}
+                </pre>
+              </div>
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedText);
+                    alert("Text copied to clipboard!");
+                  }}
+                  className="px-6 py-2.5 bg-[#4f46e5] text-white rounded-full font-bold text-sm hover:bg-[#4338ca] transition-all shadow-lg"
+                >
+                  Copy to Clipboard
+                </button>
+                <button 
+                  onClick={() => setSelectedText(null)}
+                  className="px-6 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-full font-bold text-sm hover:bg-gray-50 transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

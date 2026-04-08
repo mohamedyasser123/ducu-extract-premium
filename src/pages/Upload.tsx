@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { FileUp, Shield, Zap, Copy, Clock } from 'lucide-react'
+import { FileUp, Shield, Zap, Copy, Clock, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { pdfService } from '../services/api'
 
 const features = [
   {
@@ -23,6 +25,26 @@ export default function Upload() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+const handleUpload = async () => {
+  if (!file) return;
+
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    const result = await pdfService.splitPdf(file);
+    navigate('/split', { state: { pdfData: result, originalFile: file } });
+  } catch (err) {
+    console.error("Error splitting PDF:", err);
+    setError("Failed to process the PDF. Please ensure it is a valid file and try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -131,7 +153,11 @@ export default function Upload() {
             background: '#f3f4f6',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <FileUp size={24} color="#3525cd" />
+            {isLoading ? (
+              <Loader2 size={24} color="#3525cd" className="animate-spin" />
+            ) : (
+              <FileUp size={24} color="#3525cd" />
+            )}
           </div>
 
           {/* Text */}
@@ -163,38 +189,73 @@ export default function Upload() {
 
           {/* CTA Button — Signature Gradient */}
           <button
-            id="browse-files-btn"
-            onClick={() => inputRef.current?.click()}
+            id="action-btn"
+            onClick={file ? handleUpload : () => inputRef.current?.click()}
+            disabled={isLoading}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: '8px',
-              background: 'linear-gradient(135deg, #3525cd 0%, #4f46e5 100%)',
+              display: 'inline-flex', alignItems: 'center', gap: '12px',
+              background: isLoading 
+                ? '#9ca3af' 
+                : 'linear-gradient(135deg, #3525cd 0%, #4f46e5 100%)',
               color: '#ffffff',
-              border: 'none', cursor: 'pointer',
+              border: 'none', 
+              cursor: isLoading ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
               fontSize: '14px', fontWeight: 600,
-              padding: '13px 28px',
+              padding: '13px 32px',
               borderRadius: '999px',
-              boxShadow: '0 8px 24px rgba(53,37,205,0.30)',
-              transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+              boxShadow: isLoading ? 'none' : '0 8px 24px rgba(53,37,205,0.30)',
+              transition: 'all 0.2s ease',
               marginTop: '4px',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(53,37,205,0.42)'
-              e.currentTarget.style.transform = 'translateY(-1px)'
+              if (!isLoading) {
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(53,37,205,0.42)'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(53,37,205,0.30)'
-              e.currentTarget.style.transform = 'translateY(0)'
+              if (!isLoading) {
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(53,37,205,0.30)'
+                e.currentTarget.style.transform = 'translateY(0)'
+              }
             }}
           >
-            Browse Files
-            <span style={{
-              width: '20px', height: '20px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.22)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '16px', fontWeight: 400, lineHeight: 1,
-            }}>+</span>
+            {isLoading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Processing PDF...
+              </>
+            ) : (
+              <>
+                {file ? 'Start Extraction' : 'Browse Files'}
+                <span style={{
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.22)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '16px', fontWeight: 400, lineHeight: 1,
+                }}>
+                  {file ? '→' : '+'}
+                </span>
+              </>
+            )}
           </button>
+
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              background: '#fef2f2',
+              color: '#b91c1c',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid #fee2e2',
+              marginTop: '8px'
+            }}>
+              {error}
+            </div>
+          )}
 
           {/* Info row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '4px' }}>
