@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { FileText, Eye, Pause, Settings, X, Plus, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FileText, Eye, Pause, Settings, X, Plus, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { pdfService, type SplitResponse } from '../services/api';
 
 interface OCRFile {
@@ -48,6 +48,7 @@ const getStatusIcon = (status: string) => {
 
 export default function OCRProcessing() {
   const location = useLocation();
+  const navigate = useNavigate();
   const pdfData = location.state?.pdfData as SplitResponse | undefined;
   const originalFile = location.state?.originalFile as File | undefined;
 
@@ -68,6 +69,7 @@ export default function OCRProcessing() {
     if (originalFile && files.length > 0 && !isProcessing) {
       handleStartOCR();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [originalFile]);
 
   const handleStartOCR = async () => {
@@ -224,15 +226,26 @@ export default function OCRProcessing() {
 
         {/* Bottom Controls */}
         <div className="flex gap-4 justify-center">
-          <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-gray-700 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors">
-            <Pause size={18} /> PAUSE
-          </button>
-          <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-gray-700 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors">
-            <Settings size={18} /> SETTINGS
-          </button>
-          <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-red-600 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-red-50 transition-colors">
-            <X size={18} /> ABORT
-          </button>
+          {doneCount === files.length && files.length > 0 ? (
+            <button 
+              onClick={() => navigate('/download', { state: { files, originalFile } })}
+              className="flex items-center gap-2 bg-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-[14px] hover:bg-[#4338ca] transition-colors shadow-[0_4px_14px_rgba(79,70,229,0.39)]"
+            >
+              <CheckCircle2 size={18} /> CONTINUE TO DOWNLOAD
+            </button>
+          ) : (
+            <>
+              <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-gray-700 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors">
+                <Pause size={18} /> PAUSE
+              </button>
+              <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-gray-700 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors">
+                <Settings size={18} /> SETTINGS
+              </button>
+              <button className="flex items-center gap-2 bg-white border border-[#f0f2f5] text-red-600 px-6 py-2 rounded-full font-bold text-[13px] hover:bg-red-50 transition-colors">
+                <X size={18} /> ABORT
+              </button>
+            </>
+          )}
         </div>
 
         {/* Text Preview Modal */}

@@ -1,6 +1,7 @@
 import { MoreVertical, FileText, ArrowRight, LayoutList, Plus, CircleCheck } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { SplitResponse, SplitFile } from '../services/api'
+import { HealthStatus } from '../components/common/HealthStatus'
 
 export default function SplitReview() {
 
@@ -159,9 +160,7 @@ export default function SplitReview() {
               onMouseLeave={e => (e.currentTarget.style.color = '#8b8fa8')}
             >{label}</span>
           ))}
-          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#006c49', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Status: System Ready
-          </span>
+          <HealthStatus />
         </div>
       </footer>
       

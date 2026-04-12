@@ -40,6 +40,16 @@ export const pdfService = {
     const response = await apiClient.post<OCRResponse>("/extract-text", formData);
     return response.data;
   },
+
+  downloadFile: async (filename: string): Promise<Blob> => {
+    const response = await apiClient.get(`/download/${filename}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  checkHealth: async (): Promise<{ status: string }> => {
+    const response = await apiClient.get('/health');
+    return response.data;
+  }
 };
 
 export default apiClient;

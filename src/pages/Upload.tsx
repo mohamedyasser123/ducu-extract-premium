@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { FileUp, Shield, Zap, Copy, Clock, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { pdfService } from '../services/api'
+import { HealthStatus } from '../components/common/HealthStatus'
 
 const features = [
   {
@@ -336,9 +337,7 @@ const handleUpload = async () => {
               onMouseLeave={e => (e.currentTarget.style.color = '#8b8fa8')}
             >{label}</span>
           ))}
-          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#006c49', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Status: System Ready
-          </span>
+          <HealthStatus />
         </div>
       </footer>
     </div>
