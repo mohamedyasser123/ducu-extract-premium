@@ -247,7 +247,7 @@ function FileCard({ file }: { file: OCRFile }) {
           <p style={{ fontSize: '11px', color: '#8b8fa8' }}>{file.size || 'Unknown KB'}</p>
         </div>
 
-        <div style={{ display: 'flex', justifyItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
 
           <button 
             onClick={() => setShowPreview(true)}

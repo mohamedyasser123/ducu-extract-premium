@@ -20,7 +20,7 @@ export default function SplitReview() {
         {/* ── Top Banner ── */}  
         <div className="mt-2 p-3 bg-[#EBFDF6]  border border-[2px] border-[#CDF9E8] rounded-[14px]  flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-             <div className='w-[40px] h-[40px] rounded-full bg-[#6CF8BB] flex items-center justify-center'>< CircleCheck size={20} className="text-[#6CF8BB] bg-[#00714D] rounded-full " /></div>
+             <div className='w-[40px] h-[40px] rounded-full bg-[#6CF8BB] flex items-center justify-center'><CircleCheck size={20} className="text-[#6CF8BB] bg-[#00714D] rounded-full " /></div>
             <div>
               <h3 className="text-[#191c1e] font-bold text-[15px]">PDF Uploaded & Split Successfully</h3>
               <p className="text-[#464555] text-[13px] mt-0.5">Your document has been processed into {pdfPages.length} individual pages.</p>

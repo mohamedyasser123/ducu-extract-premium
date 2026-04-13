@@ -83,7 +83,9 @@ export default function OCRProcessing() {
       const result = await pdfService.extractText(originalFile);
       
       setFiles(prev => prev.map((file, index) => {
-        const ocrData = result.pages.find(p => p.page_number === index);
+        // Try both 0-based and 1-based matching
+        const ocrData = result.pages.find(p => p.page_number === index + 1) || 
+                       result.pages.find(p => p.page_number === index);
         return {
           ...file,
           status: 'DONE',
